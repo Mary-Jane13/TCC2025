@@ -48,5 +48,5 @@ class Catalogo:
     def listar_disciplinas(self):
         return list(self.disciplinas.values())
 
-    def __repr__(self):
+    def __repr__(self):   #isso vou usar pra testar se ele pelo menos não ta dando erro
         return f"Catálogo com {len(self.disciplinas)} disciplinas"
