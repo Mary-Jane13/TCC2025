@@ -16,6 +16,10 @@ from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
 import numpy as np
 from collections import defaultdict
 from model import Catalogo
+#interatividade entre on nós conectados e arestas
+import matplotlib.pyplot as plt
+
+
 
 def map_nota_para_cor(nota):
     """
@@ -41,10 +45,41 @@ def map_nota_para_cor(nota):
         b = int(0 * (1 - t) + 193 * t)
         return f"#{r:02x}{g:02x}{b:02x}"
 
-def desenhar_mini_mapa_calor(ax, x, y, width, height, notas):
+def desenhar_mini_mapa_calor(ax, x, y, width, height, notas, ordem='decrescente', ra_sequencia=None):
+    """
+    Desenha o mini mapa de calor com diferentes ordens de visualização.
+    
+    Parâmetros:
+    - ax: objeto de eixos do matplotlib onde desenhar
+    - ordem: 'decrescente', 'crescente', 'ra'
+    - ra_sequencia: lista ordenada de RAs para a ordem 'ra'
+    """
     if not notas:
         return
-    num_notas = len(notas) 
+    
+    notas_validas = [n for n in notas if n is not None]
+    quadrados_cinzas = [n for n in notas if n is None]
+    
+    notas_ordenadas = []
+    
+    # Ordenar as notas conforme a opção selecionada
+    if ordem == 'decrescente':
+        notas_ordenadas_validas = sorted(notas_validas, reverse=True)
+        notas_ordenadas = notas_ordenadas_validas + quadrados_cinzas
+    elif ordem == 'crescente':
+        notas_ordenadas_validas = sorted(notas_validas)
+        notas_ordenadas = notas_ordenadas_validas + quadrados_cinzas
+    elif ordem == 'ra':
+        # Na ordem 'ra', as notas já vêm na ordem correta (incluindo 'None')
+        # da função 'desenhar_grafo_em_camadas'
+        notas_ordenadas = notas
+    else:
+        # Padrão (decrescente)
+        notas_ordenadas_validas = sorted(notas_validas, reverse=True)
+        notas_ordenadas = notas_ordenadas_validas + quadrados_cinzas
+
+
+    num_notas = len(notas_ordenadas) 
     
     # o layout do grid
     cols = min(5, num_notas)  
@@ -53,14 +88,17 @@ def desenhar_mini_mapa_calor(ax, x, y, width, height, notas):
     # tamanho dos quadradinhos
     cell_width = width / cols
     cell_height = height / rows
-    for i, nota in enumerate(notas):
+    for i, nota in enumerate(notas_ordenadas):
         row = i // cols
         col = i % cols
         
         cell_x = x - width/2 + col * cell_width
         cell_y = y + height/2 - (row + 1) * cell_height
-        
-        cor = map_nota_para_cor(nota)
+
+        if nota is None:
+            cor = '#CCCCCC'
+        else:
+            cor = map_nota_para_cor(nota)
         
         cell = FancyBboxPatch(
             (cell_x, cell_y),
@@ -102,7 +140,7 @@ def criar_grafo_do_catalogo(catalogo: Catalogo) -> nx.DiGraph:
 # ---------------------------
 # Função: desenhar_grafo_em_camadas
 # ---------------------------
-def desenhar_grafo_em_camadas(grafo: nx.DiGraph, catalogo: Catalogo) -> Figure:
+def desenhar_grafo_em_camadas(grafo: nx.DiGraph, catalogo: Catalogo, ordem_heatmap='decrescente', ra_sequencia=None) -> Figure:
     """
     Recebe um grafo (nx.DiGraph) com atributo de nó 'semestre' e desenha:
     - Colunas verticais por semestre
@@ -213,12 +251,13 @@ def desenhar_grafo_em_camadas(grafo: nx.DiGraph, catalogo: Catalogo) -> Figure:
         #Obter as notas pro mapa de calor
         disciplina = catalogo.get_disciplina(node)
         notas = []
-        if disciplina and disciplina.registros:
-            for registro in disciplina.registros:
-                if registro['nota'] is not None and registro['nota'] >= 0:
-                    notas.append(registro['nota'])
-        
-        notas.sort(reverse=True) #-> isso ordena em ordem decrescente
+        if disciplina and ra_sequencia:
+            for ra in ra_sequencia:
+                ultimo_registro = disciplina.get_ultima_nota_aluno(ra)
+                if ultimo_registro and ultimo_registro['nota'] is not None and ultimo_registro['nota'] >= 0:
+                    notas.append(ultimo_registro['nota'])
+                else:
+                    notas.append(None)  # None indica aluno sem nota nesta disciplin
         
         #Criar caixa principal 
         rect = FancyBboxPatch(
@@ -239,12 +278,12 @@ def desenhar_grafo_em_camadas(grafo: nx.DiGraph, catalogo: Catalogo) -> Figure:
 
         #Desenhar mini mapa de calor:
         mapa_height = box_height * 0.65
-        desenhar_mini_mapa_calor(ax_grafo, x, y + box_height * 0.15, box_width * 0.9, mapa_height, notas)
+        desenhar_mini_mapa_calor(ax_grafo, x, y + box_height * 0.15, box_width * 0.9, mapa_height, notas, ordem_heatmap, ra_sequencia)
         
         # Escreve o código da disciplina embaixo
         txt = ax_grafo.text(x, y - box_height * 0.4, node, 
                       ha='center', va='center',
-                      fontweight='bold', fontsize=10, zorder=5)
+                      fontweight='bold', fontsize=8, zorder=5)
         
 
         txt.set_picker(True) # O texto tem que ser clicável tbm pra nao dar uns bugs
@@ -293,6 +332,10 @@ def desenhar_grafo_em_camadas(grafo: nx.DiGraph, catalogo: Catalogo) -> Figure:
             mutation_scale=20, linewidth=1.8,
             connectionstyle="arc3,rad=0.08", zorder=2
         )
+
+        arrow.set_gid(f"{start}->{end}")  # Identificador único para a seta
+
+
         ax_grafo.add_patch(arrow)
 
     # -------------------------------------
@@ -326,11 +369,46 @@ def desenhar_grafo_em_camadas(grafo: nx.DiGraph, catalogo: Catalogo) -> Figure:
     ax_grafo.set_title("Sistema de Visualização de Múltiplos Históricos", fontsize=20, weight='bold', pad=18)
 
     # -------------------------------------
-    # 11) Ajustar margens superiores/inferiores (aprox. 0.5 cm visual)
+    # Interatividade com hover (destacar vizinhos e arestas)
     # -------------------------------------
-    # subplots_adjust garantem que a figura use mais do espaço disponível,
-    # reduzindo as margens superior e inferior.
-    # plt.tight_layout()
-    fig.subplots_adjust(top=0.98, bottom=0.02, left=0.01, right=0.99)
+    '''
+    cursor = mplcursors.cursor(ax_grafo.texts, hover=True)  # ativa hover apenas sobre os textos
 
+    @cursor.connect("add")
+    def on_hover(sel):
+        try:
+            node_label = sel.artist.get_text()  # texto do nó (ex: código da disciplina)
+        except AttributeError:
+            return  # ignora se não for texto
+
+        # Obtém nós conectados no grafo
+        connected_nodes = list(grafo.successors(node_label)) + list(grafo.predecessors(node_label))
+
+        # Destaca o nó atual e os conectados
+        for text in ax_grafo.texts:
+            if text.get_text() == node_label:
+                text.set_fontweight('bold')
+                text.set_color('orange')
+            elif text.get_text() in connected_nodes:
+                text.set_fontweight('bold')
+                text.set_color('goldenrod')
+            else:
+                text.set_fontweight('normal')
+                text.set_color('black')
+
+        fig.canvas.draw_idle()
+
+    @cursor.connect("remove")
+    def on_leave(sel):
+        # Restaura as cores originais quando o cursor sai
+        for text in ax_grafo.texts:
+            text.set_fontweight('normal')
+            text.set_color('black')
+        fig.canvas.draw_idle()
+    '''
+
+    # -------------------------------------
+    # 11) Ajustar margens e retornar figura
+    # -------------------------------------
+    fig.subplots_adjust(top=0.98, bottom=0.02, left=0.01, right=0.99)
     return fig
