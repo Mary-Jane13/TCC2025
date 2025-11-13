@@ -369,45 +369,6 @@ def desenhar_grafo_em_camadas(grafo: nx.DiGraph, catalogo: Catalogo, ordem_heatm
     ax_grafo.set_title("Sistema de Visualização de Múltiplos Históricos", fontsize=20, weight='bold', pad=18)
 
     # -------------------------------------
-    # Interatividade com hover (destacar vizinhos e arestas)
-    # -------------------------------------
-    '''
-    cursor = mplcursors.cursor(ax_grafo.texts, hover=True)  # ativa hover apenas sobre os textos
-
-    @cursor.connect("add")
-    def on_hover(sel):
-        try:
-            node_label = sel.artist.get_text()  # texto do nó (ex: código da disciplina)
-        except AttributeError:
-            return  # ignora se não for texto
-
-        # Obtém nós conectados no grafo
-        connected_nodes = list(grafo.successors(node_label)) + list(grafo.predecessors(node_label))
-
-        # Destaca o nó atual e os conectados
-        for text in ax_grafo.texts:
-            if text.get_text() == node_label:
-                text.set_fontweight('bold')
-                text.set_color('orange')
-            elif text.get_text() in connected_nodes:
-                text.set_fontweight('bold')
-                text.set_color('goldenrod')
-            else:
-                text.set_fontweight('normal')
-                text.set_color('black')
-
-        fig.canvas.draw_idle()
-
-    @cursor.connect("remove")
-    def on_leave(sel):
-        # Restaura as cores originais quando o cursor sai
-        for text in ax_grafo.texts:
-            text.set_fontweight('normal')
-            text.set_color('black')
-        fig.canvas.draw_idle()
-    '''
-
-    # -------------------------------------
     # 11) Ajustar margens e retornar figura
     # -------------------------------------
     fig.subplots_adjust(top=0.98, bottom=0.02, left=0.01, right=0.99)
