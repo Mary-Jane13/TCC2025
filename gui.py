@@ -1,5 +1,6 @@
 # gui.py - versão corrigida
 
+
 import tkinter as tk
 from tkinter import ttk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
@@ -9,7 +10,6 @@ import numpy as np
 import viz 
 import os
 from model import Disciplina
-import mplcursors
 import networkx as nx
 
 
