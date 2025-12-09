@@ -65,3 +65,7 @@ Deve conter a estrutura das disciplinas (Subjects), incluindo ID, nome, crédito
     -   Em seguida, selecione o arquivo **CSV** (Dados dos Alunos).
     -   A interface gráfica será carregada automaticamente.
 
+## Contato:
+
+Para qualquer dúvida, mande email para mariduoliver@gmail.com.
+
