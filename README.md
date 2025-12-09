@@ -16,7 +16,7 @@ Este sistema usa o arquivo CSV de simulação de notas do GradeGen (https://gith
 
 Deve conter a estrutura das disciplinas (Subjects), incluindo ID, nome, créditos, semestre oferecido e pré-requisitos. Exemplo:
 
-'''xml
+```xml
 <all_configs>
   <cat_info>
     <course_id>94</course_id>
@@ -40,7 +40,7 @@ Deve conter a estrutura das disciplinas (Subjects), incluindo ID, nome, crédito
   </subject>
 ...
   </subjects>
-'''
+```
 
 ### Instalação e Uso:
 
